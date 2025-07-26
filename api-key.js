@@ -1,5 +1,5 @@
-- name: Build with secret
-  run: |
-    echo "window.HF_API_KEY = '${{ secrets.HF_API_KEY }}';" > public/api-key.js
-- name: Show api-key.js content
-  run: cat public/api-key.js
+- name: Deploy to GitHub Pages
+  uses: peaceiris/actions-gh-pages@v3
+  with:
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    publish_dir: ./public
