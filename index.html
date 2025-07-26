@@ -1,4 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Wei — AI Chatbot</title>
   <link rel="icon" href="favicon.ico" />
   <script defer src="api-key.js"></script>
@@ -21,18 +25,24 @@
 
     .message {
       margin-bottom: 1em;
+      padding: 8px;
+      border-radius: 6px;
     }
 
     .user {
+      background-color: #d0e7ff;
       color: #007bff;
+      text-align: right;
     }
 
     .bot {
-      color: #28a745;
+      background-color: #d8f3dc;
+      color: #2e7d32;
+      text-align: left;
     }
 
     input[type="text"] {
-      width: 100%;
+      width: 80%;
       padding: 10px;
       margin-top: 10px;
       border: 1px solid #ccc;
@@ -52,36 +62,66 @@
     button:hover {
       background: #0056b3;
     }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
   <div id="chatbox">
     <h1>🤖 Talk to Wei</h1>
     <div id="messages"></div>
-    <input type="text" id="userInput" placeholder="Say something..." style="width: 80%;" />
-    <button onclick="sendMessage()">Send</button>
+    <input type="text" id="userInput" placeholder="Say something..." />
+    <button id="sendBtn" onclick="sendMessage()">Send</button>
   </div>
 
   <script>
     let HF_API_KEY;
 
-    // Wait until api-key.js loads and sets the key
     window.addEventListener("DOMContentLoaded", () => {
       HF_API_KEY = window.HF_API_KEY;
 
       if (!HF_API_KEY) {
-        document.getElementById("messages").innerHTML += `<div class="message bot">⚠️ API key missing.</div>`;
+        addBotMessage("⚠️ API key missing. Please check deployment.");
+        document.getElementById('sendBtn').disabled = true;
       }
     });
 
-    async function sendMessage() {
-      const input = document.getElementById("userInput").value;
+    function addUserMessage(text) {
       const messagesDiv = document.getElementById("messages");
+      const div = document.createElement("div");
+      div.className = "message user";
+      div.textContent = text;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
 
-      messagesDiv.innerHTML += `<div class="message user">${input}</div>`;
-      document.getElementById("userInput").value = "";
+    function addBotMessage(text) {
+      const messagesDiv = document.getElementById("messages");
+      const div = document.createElement("div");
+      div.className = "message bot";
+      div.textContent = text;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
 
-      messagesDiv.innerHTML += `<div class="message bot">⏳ Thinking...</div>`;
+    async function sendMessage() {
+      const inputElem = document.getElementById("userInput");
+      const input = inputElem.value.trim();
+      if (!input) return;
+
+      addUserMessage(input);
+      inputElem.value = "";
+      document.getElementById('sendBtn').disabled = true;
+
+      const thinkingDiv = document.createElement('div');
+      thinkingDiv.className = 'message bot';
+      thinkingDiv.textContent = '⏳ Thinking...';
+      const messagesDiv = document.getElementById("messages");
+      messagesDiv.appendChild(thinkingDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
       try {
         const response = await fetch("https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-alpha", {
@@ -90,17 +130,23 @@
             "Authorization": `Bearer ${HF_API_KEY}`,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            inputs: input,
-          }),
+          body: JSON.stringify({ inputs: input }),
         });
 
         const data = await response.json();
+        let botReply = "⚠️ No answer.";
 
-        const botReply = data?.generated_text || data?.[0]?.generated_text || "⚠️ No answer.";
-        messagesDiv.innerHTML += `<div class="message bot">${botReply}</div>`;
+        if (data?.generated_text) {
+          botReply = data.generated_text;
+        } else if (Array.isArray(data) && data[0]?.generated_text) {
+          botReply = data[0].generated_text;
+        }
+
+        thinkingDiv.textContent = botReply;
       } catch (error) {
-        messagesDiv.innerHTML += `<div class="message bot">⚠️ Error: ${error.message}</div>`;
+        thinkingDiv.textContent = `⚠️ Error: ${error.message}`;
+      } finally {
+        document.getElementById('sendBtn').disabled = false;
       }
     }
   </script>
