@@ -28,6 +28,7 @@
       border-radius: 8px;
       white-space: pre-wrap;
       margin-top: 1rem;
+      min-height: 5rem;
     }
   </style>
 </head>
@@ -39,8 +40,14 @@
 
   <script>
     async function askWei() {
-      const prompt = document.getElementById("prompt").value;
+      const prompt = document.getElementById("prompt").value.trim();
       const output = document.getElementById("response");
+
+      if (!prompt) {
+        output.textContent = "⚠️ Please enter a question.";
+        return;
+      }
+
       const apiKey = "csk-vmx8p44ndx99fmpyjk2mx32y2f5nkxy8ex6w3h5mpf964mwv"; // 🔐 Fixed API key
 
       output.textContent = "Thinking...";
@@ -63,14 +70,24 @@
           })
         });
 
-        const data = await response.json();
-        output.textContent = data?.choices?.[0]?.message?.content || "No response.";
+        const raw = await response.text();
+        console.log("Raw API response:", raw);
+        const data = JSON.parse(raw);
+
+        if (data.choices && data.choices[0]?.message?.content) {
+          output.textContent = data.choices[0].message.content;
+        } else if (data.error) {
+          output.textContent = "❌ API Error: " + data.error.message;
+        } else {
+          output.textContent = "⚠️ API returned no answer.";
+        }
       } catch (err) {
+        console.error("Error calling Wei:", err);
         output.textContent = "❌ Error talking to Wei: " + err.message;
       }
     }
 
-    // Auto-refresh every hour
+    // Auto-refresh every hour to load newest code
     setInterval(() => {
       window.location.reload(true);
     }, 3600000);
