@@ -1,4 +1,4 @@
-name: Deploy Wei AI Website
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -6,14 +6,14 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Inject Wei API Key
+      - name: Inject Hugging Face API Key
         run: echo "window.HF_API_KEY = '${{ secrets.HF_API_KEY }}';" > public/api-key.js
 
       - name: Deploy to GitHub Pages
